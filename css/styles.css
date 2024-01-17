@@ -1,0 +1,104 @@
+body {
+  overflow-x: hidden;
+}
+
+.content {
+  height: 150vh;
+  width: 98vw;
+  display: flex;
+  overflow-x: hidden;
+}
+
+.sidebar {
+  width: 300px;
+  height: 100%;
+  background-color: darkblue;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.sidebar-item {
+  background-color: transparent;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 1px solid black;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.block2,
+.block4 {
+  position: relative;
+  height: 40%;
+  width: 400px;
+  background: rgba(255, 255, 0, 0.52);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.block1,
+.block3 {
+  height: 30%;
+  width: 40%;
+  background: rgba(153, 205, 50, 0.613);
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+}
+
+.circle {
+  display: block;
+  border-radius: 50%;
+  height: 50px;
+  width: 50px;
+  background: rgb(14, 14, 101);
+  position: absolute;
+  right: 30%;
+  cursor: pointer;
+}
+
+.square {
+  display: block;
+  height: 50px;
+  width: 50px;
+  background: rgb(178, 12, 12);
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+
+.plot {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+@media (max-width: 750px) {
+  .block1,
+  .block2,
+  .block3,
+  .block4 {
+    width: 95%;
+  }
+}
