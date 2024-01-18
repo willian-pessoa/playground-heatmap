@@ -1,4 +1,34 @@
+const GLOBAL_TRACK_DATA = {}
 const GLOBAL_MOUSE_DATA = {}
+
+const normalizeFPS = callback => {
+  let ticking = true;
+  const update = () => {
+    if (ticking) requestAnimationFrame(update);
+    ticking = true;
+  };
+  return event => {
+    if (ticking) {
+      callback(event);
+      update();
+    }
+    ticking = false;
+  };
+};
+
+const convertCustomCssSelector = (cssSelector) => {
+  if (!cssSelector) return null
+
+  let newCssSelector = ""
+
+  const bracketsRegex = /\[(\d+)\]/g
+
+  if (bracketsRegex.test(cssSelector)) {
+    newCssSelector = cssSelector.replaceAll(bracketsRegex, "nth-child($1)");
+  }
+
+  return newCssSelector
+}
 
 const getSiblingIndex = (element) => {
   if (!element || !element.parentElement?.children) return 0
@@ -23,7 +53,7 @@ const getNodeName = (element) => {
   let nodeName = element.nodeName.toLowerCase()
   let siblingIndex = getSiblingIndex(element)
 
-  return !siblingIndex ? nodeName : `${nodeName}[${siblingIndex + 1}]`
+  return !siblingIndex ? nodeName : `${nodeName}:[${siblingIndex + 1}]`
 }
 
 const getParentsElements = (element) => {
@@ -55,32 +85,54 @@ const getElementCssSelector = (element) => {
   return idCssSelector
 }
 
-const trackMouse = () => {
-  const mouseTrack = {
-    user: "Teste",
-    pageUrl: window.location.href,
-    windowsSize: {
-      height: window.innerHeight,
-      width: window.innerWidth,
-    },
-    startRecordAt: Date.now(),
+const pushMouseClickEventData = (event) => {
+  const { offsetX, offsetY } = event
+
+  const { __heatmap_node_map_id__, scrollHeight, scrollWidth } = event.target
+
+  const nodeMapId = __heatmap_node_map_id__
+
+  const posX = offsetX / scrollWidth
+  const posY = offsetY / scrollHeight
+
+  GLOBAL_MOUSE_DATA[nodeMapId].clickData.push({
+    time: Date.now(),
+    posX,
+    posY
+  })
+
+  GLOBAL_MOUSE_DATA[nodeMapId].clicks++
+
+  event.stopPropagation()
+}
+
+const pushMouseMoveEventData = (event) => {
+  const { offsetX, offsetY } = event
+
+  const { __heatmap_node_map_id__, scrollHeight, scrollWidth } = event.target
+
+  const nodeMapId = __heatmap_node_map_id__
+
+  const posX = offsetX / scrollWidth
+  const posY = offsetY / scrollHeight
+
+  if (!posX || !posY) {
+    event.stopPropagation()
+    return
   }
 
-  const data = []
+  GLOBAL_MOUSE_DATA[nodeMapId].moveData.push({
+    time: Date.now(),
+    posX,
+    posY
+  })
 
-  // Envia as coordenadas X / Y, Timestamp e tipo de evento
-  const pushEventData = (event) => {
-    const { type } = event
-    if (type === "click") {
-      const seletor = event
-      console.log(seletor)
-      data.push({
-        time: Date.now(),
-      });
-    }
+  event.stopPropagation()
+}
 
-    event.stopPropagation()
-  };
+const trackMouse = () => {
+  GLOBAL_TRACK_DATA.pageUrl = window.location.href
+  GLOBAL_TRACK_DATA.startRecordAt = Date.now()
 
   const body = document.querySelector("body");
   const elements = body.querySelectorAll("*");
@@ -88,32 +140,65 @@ const trackMouse = () => {
   let countId = 1
 
   elements.forEach((element) => {
-    element.addEventListener("click", pushEventData)
-    element["__heatmap_node_map_id__"] = countId
+    // Add the mouse event
+    element.addEventListener("click", pushMouseClickEventData)
+    element.addEventListener("mousemove", normalizeFPS(pushMouseMoveEventData))
 
+    // Add the element a uniqueId with a css selector to the element
+    element["__heatmap_node_map_id__"] = countId
     GLOBAL_MOUSE_DATA[countId] = {
+      id: countId,
       idCssSelector: getElementCssSelector(element),
       clicks: 0,
-      data: [],
+      clickData: [],
+      moveData: [],
     }
 
     countId++
   });
 
-  mouseTrack.data = data
-
-  return mouseTrack
+  return
 };
 
-const plotClicks = (cordinates) => {
+const plotClicks = () => {
   let TotalX = document.body.scrollWidth
   let TotalY = document.body.scrollHeight
+
+  const cordinates = []
+
+  console.log(GLOBAL_MOUSE_DATA)
+
+  for (const elementData in GLOBAL_MOUSE_DATA) {
+    const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementData]
+
+    if (clickData.length) {
+      const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+      const rect = element.getBoundingClientRect()
+      console.log("🚀 ~ rect:", rect)
+
+      const elementWidth = element.scrollWidth
+      const elementHeight = element.scrollHeight
+      const elementPosX = rect.left
+      const elementPosY = rect.top
+
+      for (click of clickData) {
+        const { posX, posY } = click
+
+        const x = (elementWidth * posX) + elementPosX
+        const y = (elementHeight * posY) + elementPosY
+
+        cordinates.push({ posX: x, posY: y })
+      }
+    }
+  }
+
+  console.log(cordinates)
 
   cordinates.forEach(cord => {
     const dot = document.createElement("div")
 
-    const x = TotalX * cord.posX / 100
-    const y = TotalY * cord.posY / 100
+    const x = cord.posX
+    const y = cord.posY
 
     dot.className = "dot"
     dot.style.position = "absolute"
