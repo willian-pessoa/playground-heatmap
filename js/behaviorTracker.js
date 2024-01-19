@@ -57,11 +57,11 @@ const getNodeName = (element) => {
 }
 
 const getParentsElements = (element) => {
-  if (!element) return
+  if (!element) return ""
 
-  if (element.parentElement.nodeName === "BODY") {
-    return "body"
-  }
+  if (!element.parentElement) return "body"
+
+  if (element.parentElement.nodeName === "BODY") return "body"
 
   if (element.parentElement) {
     let parentNodeName = " > " + getNodeName(element.parentElement)
@@ -86,11 +86,31 @@ const getElementCssSelector = (element) => {
 }
 
 const pushMouseClickEventData = (event) => {
+  event.stopPropagation()
+
   const { offsetX, offsetY } = event
 
   const { __heatmap_node_map_id__, scrollHeight, scrollWidth } = event.target
 
-  const nodeMapId = __heatmap_node_map_id__
+  if (!__heatmap_node_map_id__) {
+    const countId = GLOBAL_TRACK_DATA.nodeAmount
+
+    event.target.__heatmap_node_map_id__ = countId
+
+    GLOBAL_MOUSE_DATA[countId] = {
+      id: countId,
+      idCssSelector: getElementCssSelector(event.target),
+      clicks: 0,
+      clickData: [],
+      moveData: [],
+    }
+
+    GLOBAL_TRACK_DATA.nodeAmount = countId + 1
+
+    return
+  }
+
+  const nodeMapId = __heatmap_node_map_id__ || GLOBAL_TRACK_DATA.nodeAmount
 
   const posX = offsetX / scrollWidth
   const posY = offsetY / scrollHeight
@@ -102,8 +122,6 @@ const pushMouseClickEventData = (event) => {
   })
 
   GLOBAL_MOUSE_DATA[nodeMapId].clicks++
-
-  event.stopPropagation()
 }
 
 const pushMouseMoveEventData = (event) => {
@@ -139,9 +157,11 @@ const trackMouse = () => {
 
   let countId = 1
 
+  document.addEventListener("click", pushMouseClickEventData)
+
   elements.forEach((element) => {
     // Add the mouse event
-    element.addEventListener("click", pushMouseClickEventData)
+    //element.addEventListener("click", pushMouseClickEventData)
     element.addEventListener("mousemove", normalizeFPS(pushMouseMoveEventData))
 
     // Add the element a uniqueId with a css selector to the element
@@ -157,22 +177,26 @@ const trackMouse = () => {
     countId++
   });
 
+  GLOBAL_TRACK_DATA.nodeAmount = countId
+
   return
 };
 
 const plotClicks = () => {
   const cordinates = []
-
+  
   console.log(GLOBAL_MOUSE_DATA)
 
   for (const elementData in GLOBAL_MOUSE_DATA) {
     const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementData]
 
     if (clickData.length && idCssSelector) {
-      console.log("🚀 ~ idCssSelector:", idCssSelector)
       const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+      console.log("🚀 ~ element:", element)
+
+      if (!element) continue
+
       const rect = element.getBoundingClientRect()
-      console.log("🚀 ~ rect:", rect)
 
       const elementWidth = element.scrollWidth
       const elementHeight = element.scrollHeight

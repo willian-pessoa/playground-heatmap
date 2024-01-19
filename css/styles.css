@@ -109,6 +109,12 @@ body {
   z-index: 1000;
 }
 
+button {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 @media (max-width: 750px) {
   .block1,
   .block2,
@@ -116,4 +122,15 @@ body {
   .block4 {
     width: 95%;
   }
+}
+
+.modalTeste {
+  height: 90vh;
+  width: 70vw;
+  top: 5%;
+  right: 50%;
+  position: absolute;
+  background-color: red;
+  border-radius: 8px;
+  transform: translate(50%, 0%);
 }
