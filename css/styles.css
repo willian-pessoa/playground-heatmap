@@ -87,6 +87,21 @@ body {
   position: absolute;
   right: 0;
   top: 0;
+  height: 60px;
+  width: 60px;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.plot2 {
+  position: absolute;
+  right: 0;
+  top: 70px;
+  height: 60px;
+  width: 60px;
   margin: 20px;
   padding: 20px;
   border-radius: 50%;

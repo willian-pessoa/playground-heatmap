@@ -19,7 +19,7 @@ const normalizeFPS = callback => {
 const convertCustomCssSelector = (cssSelector) => {
   if (!cssSelector) return null
 
-  let newCssSelector = ""
+  let newCssSelector = cssSelector
 
   const bracketsRegex = /\[(\d+)\]/g
 
@@ -161,9 +161,6 @@ const trackMouse = () => {
 };
 
 const plotClicks = () => {
-  let TotalX = document.body.scrollWidth
-  let TotalY = document.body.scrollHeight
-
   const cordinates = []
 
   console.log(GLOBAL_MOUSE_DATA)
@@ -171,7 +168,8 @@ const plotClicks = () => {
   for (const elementData in GLOBAL_MOUSE_DATA) {
     const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementData]
 
-    if (clickData.length) {
+    if (clickData.length && idCssSelector) {
+      console.log("🚀 ~ idCssSelector:", idCssSelector)
       const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
       const rect = element.getBoundingClientRect()
       console.log("🚀 ~ rect:", rect)
@@ -192,8 +190,6 @@ const plotClicks = () => {
     }
   }
 
-  console.log(cordinates)
-
   cordinates.forEach(cord => {
     const dot = document.createElement("div")
 
@@ -209,9 +205,20 @@ const plotClicks = () => {
     dot.style.border = "1px solid black"
     dot.style.top = y + "px"
     dot.style.left = x + "px"
+    dot.style.zIndex = 9999
 
     document.body.appendChild(dot)
   })
+}
+
+const removePlots = () => {
+  const elements = document.body.querySelectorAll(".dot")
+
+  if (!elements.length) return
+
+  for (const element of elements) {
+    element.remove()
+  }
 }
 
 const mouseData = trackMouse()
