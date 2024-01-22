@@ -91,8 +91,18 @@ const getElementCssSelector = (element) => {
   return idCssSelector
 }
 
+const getMapElementByIdCssSelector = (idCssSelector) => {
+  for (const elementKey in GLOBAL_MOUSE_DATA) {
+    const { idCssSelector: cssSelector, id } = GLOBAL_MOUSE_DATA[elementKey]
+    if (cssSelector === idCssSelector) {
+      return id
+    }
+  }
+
+  return null
+}
+
 const pushMouseClickEventData = (event) => {
-  console.log("🚀 ~ event:", event)
   event.stopPropagation()
 
   // compute the relative position inside the element
@@ -104,13 +114,29 @@ const pushMouseClickEventData = (event) => {
 
   // If element not in the elements DOM maping, add to it with the click
   if (!__heatmap_node_map_id__) {
+    const idCssSelector = getElementCssSelector(event.target)
+
+    const hashNodeMapId = getMapElementByIdCssSelector(idCssSelector)
+
+    if (hashNodeMapId) {
+      GLOBAL_MOUSE_DATA[hashNodeMapId].clickData.push({
+        time: Date.now(),
+        posX,
+        posY
+      })
+
+      GLOBAL_MOUSE_DATA[hashNodeMapId].clicks++
+
+      return
+    }
+
     const countId = GLOBAL_TRACK_DATA.nodeAmount
 
     event.target.__heatmap_node_map_id__ = countId
 
     GLOBAL_MOUSE_DATA[countId] = {
       id: countId,
-      idCssSelector: getElementCssSelector(event.target),
+      idCssSelector,
       clicks: 1,
       clickData: [{ time: Date.now(), posX, posY }],
       moveData: [],
