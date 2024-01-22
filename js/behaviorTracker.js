@@ -35,11 +35,12 @@ const getSiblingIndex = (element) => {
 
   let siblingIndex = 0
 
-
   for (let item of element.parentElement.children) {
     if (item.__heatmap_node_map_id__ === element.__heatmap_node_map_id__) {
       return siblingIndex
     }
+
+    if (item.nodeName !== element.nodeName) continue
 
     siblingIndex++
   }
@@ -184,13 +185,16 @@ const trackMouse = () => {
 
 const plotClicks = () => {
   const cordinates = []
-  
+
+  const absoluteElements = []
+
   console.log(GLOBAL_MOUSE_DATA)
 
   for (const elementData in GLOBAL_MOUSE_DATA) {
     const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementData]
 
     if (clickData.length && idCssSelector) {
+      console.log("🚀 ~ idCssSelector:", idCssSelector)
       const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
       console.log("🚀 ~ element:", element)
 

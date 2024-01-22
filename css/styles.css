@@ -133,4 +133,21 @@ button {
   background-color: red;
   border-radius: 8px;
   transform: translate(50%, 0%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalContent {
+  height: 50%;
+  width: 50%;
+  background-color: rgb(108, 41, 41);
+  border-radius: 8px;
+}
+
+.btn-closeModal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 10px;
 }
