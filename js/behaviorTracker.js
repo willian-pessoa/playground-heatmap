@@ -40,7 +40,7 @@ const getSiblingIndex = (element) => {
       return siblingIndex
     }
 
-    if (item.nodeName !== element.nodeName) continue
+    if (item.nodeName === "SCRIPT" || item.nodeName === "MAIN") continue
 
     siblingIndex++
   }
