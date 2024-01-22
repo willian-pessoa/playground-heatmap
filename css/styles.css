@@ -109,6 +109,18 @@ body {
   z-index: 1000;
 }
 
+.openModal2 {
+  position: fixed;
+  right: 0;
+  bottom: 20px;
+  height: 60px;
+  width: 60px;
+  margin: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
+}
+
 button {
   padding: 12px;
   border-radius: 8px;
@@ -146,6 +158,34 @@ button {
 }
 
 .btn-closeModal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 10px;
+}
+
+.modalTeste2 {
+  height: 60vh;
+  width: 50vw;
+  top: 20%;
+  right: 50%;
+  position: absolute;
+  background-color: rgb(54, 75, 22);
+  border-radius: 8px;
+  transform: translate(50%, 0%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalContent2 {
+  height: 50%;
+  width: 50%;
+  background-color: rgb(108, 41, 41);
+  border-radius: 8px;
+}
+
+.btn-closeModal2 {
   position: absolute;
   top: 0;
   right: 0;

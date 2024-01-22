@@ -24,13 +24,13 @@ const convertCustomCssSelector = (cssSelector) => {
   const bracketsRegex = /\[(\d+)\]/g
 
   if (bracketsRegex.test(cssSelector)) {
-    newCssSelector = cssSelector.replaceAll(bracketsRegex, "nth-child($1)");
+    newCssSelector = cssSelector.replaceAll(bracketsRegex, "nth-of-type($1)");
   }
 
   return newCssSelector
 }
 
-const getSiblingIndex = (element) => {
+const getSiblingTypeIndex = (element) => {
   if (!element || !element.parentElement?.children) return 0
 
   let siblingIndex = 0
@@ -40,7 +40,7 @@ const getSiblingIndex = (element) => {
       return siblingIndex
     }
 
-    if (item.nodeName === "SCRIPT" || item.nodeName === "MAIN") continue
+    if (item.nodeName !== element.nodeName) continue
 
     siblingIndex++
   }
@@ -52,7 +52,12 @@ const getNodeName = (element) => {
   if (!element) return
 
   let nodeName = element.nodeName.toLowerCase()
-  let siblingIndex = getSiblingIndex(element)
+  let idElement = element.id
+  let siblingIndex = getSiblingTypeIndex(element)
+
+  if (idElement) {
+    return `#${idElement}`
+  }
 
   return !siblingIndex ? nodeName : `${nodeName}:[${siblingIndex + 1}]`
 }
@@ -87,12 +92,17 @@ const getElementCssSelector = (element) => {
 }
 
 const pushMouseClickEventData = (event) => {
+  console.log("🚀 ~ event:", event)
   event.stopPropagation()
 
+  // compute the relative position inside the element
   const { offsetX, offsetY } = event
-
   const { __heatmap_node_map_id__, scrollHeight, scrollWidth } = event.target
 
+  const posX = offsetX / scrollWidth
+  const posY = offsetY / scrollHeight
+
+  // If element not in the elements DOM maping, add to it with the click
   if (!__heatmap_node_map_id__) {
     const countId = GLOBAL_TRACK_DATA.nodeAmount
 
@@ -101,8 +111,8 @@ const pushMouseClickEventData = (event) => {
     GLOBAL_MOUSE_DATA[countId] = {
       id: countId,
       idCssSelector: getElementCssSelector(event.target),
-      clicks: 0,
-      clickData: [],
+      clicks: 1,
+      clickData: [{ time: Date.now(), posX, posY }],
       moveData: [],
     }
 
@@ -111,10 +121,8 @@ const pushMouseClickEventData = (event) => {
     return
   }
 
-  const nodeMapId = __heatmap_node_map_id__ || GLOBAL_TRACK_DATA.nodeAmount
-
-  const posX = offsetX / scrollWidth
-  const posY = offsetY / scrollHeight
+  // push the relative position to the dom element maping
+  const nodeMapId = __heatmap_node_map_id__
 
   GLOBAL_MOUSE_DATA[nodeMapId].clickData.push({
     time: Date.now(),
@@ -191,7 +199,7 @@ const plotClicks = () => {
   console.log(GLOBAL_MOUSE_DATA)
 
   for (const elementData in GLOBAL_MOUSE_DATA) {
-    const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementData]
+    const { idCssSelector, clickData, id } = GLOBAL_MOUSE_DATA[elementData]
 
     if (clickData.length && idCssSelector) {
       console.log("🚀 ~ idCssSelector:", idCssSelector)
