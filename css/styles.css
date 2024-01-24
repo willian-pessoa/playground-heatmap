@@ -191,3 +191,13 @@ button {
   right: 0;
   margin: 10px;
 }
+
+.backdrop {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  background: rgba(255, 255, 0, 0.239);
+  top: 0;
+  left: 0;
+}

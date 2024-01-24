@@ -16,6 +16,33 @@ const normalizeFPS = callback => {
   };
 };
 
+const getEffectingArea = (element) => {
+  const { top, left, right, bottom } = element.getBoundingClientRect()
+
+  return { top, left, right, bottom }
+}
+
+const isNotPositionStatic = (element) => {
+  const computedStyle = window.getComputedStyle(element);
+  return computedStyle.position !== "static" && computedStyle.position !== "relative";
+}
+
+const getChildrenMapKeys = (element) => {
+  const childrenKeys = []
+  for (const child of element.children) {
+    if (child.__heatmap_node_map_id__) {
+      const children = {}
+      children.childrenKey = child.__heatmap_node_map_id__
+
+      if (child.children.length) {
+        children.childrenKeys = getChildrenMapKeys(child)
+      }
+      childrenKeys.push(children)
+    }
+  }
+  return childrenKeys
+}
+
 const convertCustomCssSelector = (cssSelector) => {
   if (!cssSelector) return null
 
@@ -217,22 +244,42 @@ const trackMouse = () => {
   return
 };
 
+const isCordinateInside = (cordinate, canOverlapElements) => {
+  for (element of canOverlapElements) {
+    const { top, left, bottom, right } = element.effectingArea
+    const { posX, posY } = cordinate
+
+    if (posX > left && posX < right && posY < bottom && posY > top) {
+      return true
+    }
+  }
+
+  return false
+}
+
 const plotClicks = () => {
+  console.time("Plot")
+
   const cordinates = []
+  const canOverlapElements = []
 
-  const absoluteElements = []
-
-  console.log(GLOBAL_MOUSE_DATA)
-
-  for (const elementData in GLOBAL_MOUSE_DATA) {
-    const { idCssSelector, clickData, id } = GLOBAL_MOUSE_DATA[elementData]
+  // COMPUTE X,Y to PLOT
+  for (const elementKey in GLOBAL_MOUSE_DATA) {
+    const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[elementKey]
 
     if (clickData.length && idCssSelector) {
-      console.log("🚀 ~ idCssSelector:", idCssSelector)
       const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
-      console.log("🚀 ~ element:", element)
 
       if (!element) continue
+
+      if (isNotPositionStatic(element)) {
+        canOverlapElements.push({
+          elementKey,
+          associateElements: getChildrenMapKeys(element),
+          effectingArea: getEffectingArea(element)
+        })
+        continue
+      }
 
       const rect = element.getBoundingClientRect()
 
@@ -252,7 +299,42 @@ const plotClicks = () => {
     }
   }
 
-  cordinates.forEach(cord => {
+  console.log(canOverlapElements)
+
+  // FILTER PLOTS IN THE OVERLAPING AREAS
+  const filteredCordinates = cordinates.filter((cordinate) => {
+    return !isCordinateInside(cordinate, canOverlapElements)
+  })
+
+
+  // RE-COMPUTE PLOTS ADD THE OVERLAP ELEMENTS THAT WASN'T INCLUDE 
+  for (const overlapingElement of canOverlapElements) {
+    const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[overlapingElement.elementKey]
+
+    if (clickData.length && idCssSelector) {
+      const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+      if (!element) continue
+
+      const rect = element.getBoundingClientRect()
+
+      const elementWidth = element.scrollWidth
+      const elementHeight = element.scrollHeight
+      const elementPosX = rect.left
+      const elementPosY = rect.top
+
+      for (click of clickData) {
+        const { posX, posY } = click
+
+        const x = (elementWidth * posX) + elementPosX
+        const y = (elementHeight * posY) + elementPosY
+
+        filteredCordinates.push({ posX: x, posY: y })
+      }
+    }
+  }
+
+  filteredCordinates.forEach(cord => {
     const dot = document.createElement("div")
 
     const x = cord.posX
@@ -271,6 +353,8 @@ const plotClicks = () => {
 
     document.body.appendChild(dot)
   })
+
+  console.timeEnd("Plot")
 }
 
 const removePlots = () => {

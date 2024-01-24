@@ -1,7 +1,11 @@
-const openTestModal = () => {
+const openTestModal = (event) => {
   const modal = document.createElement("div")
   const btn = document.createElement("button")
   const modalContent = document.createElement("div")
+  const backdrop = document.createElement("div")
+
+  backdrop.setAttribute("class", "backdrop")
+  backdrop.setAttribute("id", "backdrop")
 
   modalContent.setAttribute("class", "modalContent")
   modalContent.setAttribute("id", "modalContent")
@@ -16,11 +20,13 @@ const openTestModal = () => {
   modal.appendChild(btn)
   modal.appendChild(modalContent)
 
-  document.body.appendChild(modal)
+  backdrop.appendChild(modal)
+
+  document.body.appendChild(backdrop)
 }
 
 const closeTestModal = () => {
-  const modal = document.querySelector(".modalTeste")
+  const modal = document.querySelector(".backdrop")
 
   modal.remove()
 }
