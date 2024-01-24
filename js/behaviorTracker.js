@@ -16,6 +16,22 @@ const normalizeFPS = callback => {
   };
 };
 
+const addHeatMapIdToDOMElements = () => {
+  for (const elementKey in GLOBAL_MOUSE_DATA) {
+    const { idCssSelector, id, clickData } = GLOBAL_MOUSE_DATA[elementKey]
+
+    if (clickData.length && idCssSelector) {
+      const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+      if (!element) continue
+
+      if (!element.__heatmap_node_map_id__) {
+        element.__heatmap_node_map_id__ = id
+      }
+    }
+  }
+}
+
 const getEffectingArea = (element) => {
   const { top, left, right, bottom } = element.getBoundingClientRect()
 
@@ -261,6 +277,8 @@ const isCordinateInside = (cordinate, canOverlapElements) => {
 const plotClicks = () => {
   console.time("Plot")
 
+  addHeatMapIdToDOMElements()
+
   const cordinates = []
   const canOverlapElements = []
 
@@ -336,6 +354,7 @@ const plotClicks = () => {
       }
     }
 
+    // LOOP OVER ASSOCIATE ELEMENTES USING RECURSIVITY
     const plotAssociateElements = (associateElements) => {
       if (!associateElements.length) return
 
