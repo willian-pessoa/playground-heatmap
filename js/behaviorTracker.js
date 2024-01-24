@@ -423,4 +423,18 @@ const removePlots = () => {
   }
 }
 
-const mouseData = trackMouse()
+const onUnloadAddDataToStorage = () => {
+  addEventListener('beforeunload', () => {
+    GLOBAL_TRACK_DATA.endRecortAt = Date.now()
+
+    localStorage.setItem("GLOBAL_MOUSE_DATA", JSON.stringify(GLOBAL_MOUSE_DATA))
+    localStorage.setItem("GLOBAL_TRACK_DATA", JSON.stringify(GLOBAL_TRACK_DATA))
+  });
+}
+
+const startTrackingMouse = () => {
+  trackMouse()
+  onUnloadAddDataToStorage()
+}
+
+startTrackingMouse()
