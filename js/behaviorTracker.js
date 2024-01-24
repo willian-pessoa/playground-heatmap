@@ -30,12 +30,13 @@ const isNotPositionStatic = (element) => {
 const getChildrenMapKeys = (element) => {
   const childrenKeys = []
   for (const child of element.children) {
-    if (child.__heatmap_node_map_id__) {
+    if (child.__heatmap_node_map_id__ && !isNotPositionStatic(child)) {
       const children = {}
       children.childrenKey = child.__heatmap_node_map_id__
+      children.associateElements = []
 
       if (child.children.length) {
-        children.childrenKeys = getChildrenMapKeys(child)
+        children.associateElements = getChildrenMapKeys(child)
       }
       childrenKeys.push(children)
     }
@@ -309,6 +310,8 @@ const plotClicks = () => {
 
   // RE-COMPUTE PLOTS ADD THE OVERLAP ELEMENTS THAT WASN'T INCLUDE 
   for (const overlapingElement of canOverlapElements) {
+
+    // PLOT THE OWN ELEMENT
     const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[overlapingElement.elementKey]
 
     if (clickData.length && idCssSelector) {
@@ -332,6 +335,40 @@ const plotClicks = () => {
         filteredCordinates.push({ posX: x, posY: y })
       }
     }
+
+    const plotAssociateElements = (associateElements) => {
+      if (!associateElements.length) return
+
+      for (const associateElement of associateElements) {
+        const { idCssSelector, clickData } = GLOBAL_MOUSE_DATA[associateElement.childrenKey]
+
+        if (clickData.length && idCssSelector) {
+          const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+          if (!element) continue
+
+          const rect = element.getBoundingClientRect()
+
+          const elementWidth = element.scrollWidth
+          const elementHeight = element.scrollHeight
+          const elementPosX = rect.left
+          const elementPosY = rect.top
+
+          for (click of clickData) {
+            const { posX, posY } = click
+
+            const x = (elementWidth * posX) + elementPosX
+            const y = (elementHeight * posY) + elementPosY
+
+            filteredCordinates.push({ posX: x, posY: y })
+          }
+        }
+
+        plotAssociateElements(associateElement.associateElements)
+      }
+    }
+
+    plotAssociateElements(overlapingElement.associateElements)
   }
 
   filteredCordinates.forEach(cord => {
