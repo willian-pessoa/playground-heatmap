@@ -1,5 +1,5 @@
-const GLOBAL_TRACK_DATA = {}
-const GLOBAL_MOUSE_DATA = {}
+let GLOBAL_TRACK_DATA = {}
+let GLOBAL_MOUSE_DATA = {}
 
 const normalizeFPS = callback => {
   let ticking = true;
@@ -227,6 +227,15 @@ const pushMouseMoveEventData = (event) => {
   event.stopPropagation()
 }
 
+const getMouseDataFromApi = () => {
+  const TRACK_DATA = JSON.parse(localStorage.getItem("TRACK_DATA"))
+  console.log("🚀 ~ TRACK_DATA:", TRACK_DATA)
+
+  if (TRACK_DATA) {
+    GLOBAL_MOUSE_DATA = TRACK_DATA.data
+  }
+}
+
 const trackMouse = () => {
   GLOBAL_TRACK_DATA.pageUrl = window.location.href
   GLOBAL_TRACK_DATA.startRecordAt = Date.now()
@@ -264,9 +273,9 @@ const trackMouse = () => {
 const isCordinateInside = (cordinate, canOverlapElements) => {
   for (element of canOverlapElements) {
     const { top, left, bottom, right } = element.effectingArea
-    const { posX, posY } = cordinate
+    const { x, y } = cordinate
 
-    if (posX > left && posX < right && posY < bottom && posY > top) {
+    if (x > left && x < right && y < bottom && y > top) {
       return true
     }
   }
@@ -274,8 +283,52 @@ const isCordinateInside = (cordinate, canOverlapElements) => {
   return false
 }
 
+const paintHeatmap = (data, max) => {
+  console.log("🚀 ~ data:", data)
+  const heatMapContainer = document.createElement("div")
+  //data.push({ x: 0, y: 0 })
+
+  heatMapContainer.setAttribute("class", "heatmap")
+  heatMapContainer.style.position = "absolute"
+  heatMapContainer.style.width = "100%"
+  heatMapContainer.style.height = "100%"
+  heatMapContainer.style.top = 0
+  heatMapContainer.style.left = 0
+  heatMapContainer.style.pointerEvents = "none"
+  heatMapContainer.style.backgroundColor = "transparent"
+
+  const heatMap = document.createElement("div")
+  heatMap.style.width = "100%"
+  heatMap.style.height = "100%"
+  heatMap.style.pointerEvents = "none"
+  heatMap.style.opacity = "0.5"
+  heatMap.style.zIndex = "10000"
+  heatMap.style.backgroundColor = "rgb(0, 0, 0);"
+
+  heatMapContainer.appendChild(heatMap)
+  document.body.appendChild(heatMapContainer)
+
+  // Iniciar o heatmap definindo o container dele
+  // estou utilizando a tag HTML que vem de documentElement
+  const heatmap = h337.create({
+    container: heatMap,
+  });
+
+  const update = () => {
+    // Max é o número máximo de pontos para ficar vermelha a área
+    // data é uma array de objetos. O objeto deve possui { x: Number, y: Number}
+    heatmap.setData({
+      max,
+      data,
+    });
+    requestAnimationFrame(update);
+  };
+
+  update();
+};
+
 const plotClicks = () => {
-  console.time("Plot")
+  console.time("Plot Clicks")
 
   addHeatMapIdToDOMElements()
 
@@ -313,12 +366,10 @@ const plotClicks = () => {
         const x = (elementWidth * posX) + elementPosX
         const y = (elementHeight * posY) + elementPosY
 
-        cordinates.push({ posX: x, posY: y })
+        cordinates.push({ x, y })
       }
     }
   }
-
-  console.log(canOverlapElements)
 
   // FILTER PLOTS IN THE OVERLAPING AREAS
   const filteredCordinates = cordinates.filter((cordinate) => {
@@ -350,7 +401,7 @@ const plotClicks = () => {
         const x = (elementWidth * posX) + elementPosX
         const y = (elementHeight * posY) + elementPosY
 
-        filteredCordinates.push({ posX: x, posY: y })
+        filteredCordinates.push({ x, y })
       }
     }
 
@@ -379,7 +430,7 @@ const plotClicks = () => {
             const x = (elementWidth * posX) + elementPosX
             const y = (elementHeight * posY) + elementPosY
 
-            filteredCordinates.push({ posX: x, posY: y })
+            filteredCordinates.push({ x, y })
           }
         }
 
@@ -390,51 +441,155 @@ const plotClicks = () => {
     plotAssociateElements(overlapingElement.associateElements)
   }
 
-  filteredCordinates.forEach(cord => {
-    const dot = document.createElement("div")
+  paintHeatmap(filteredCordinates, 2)
 
-    const x = cord.posX
-    const y = cord.posY
+  console.timeEnd("Plot Clicks")
+}
 
-    dot.className = "dot"
-    dot.style.position = "absolute"
-    dot.style.width = "10px"
-    dot.style.height = "10px"
-    dot.style.borderRadius = "50%"
-    dot.style.backgroundColor = "yellow"
-    dot.style.border = "1px solid black"
-    dot.style.top = y + "px"
-    dot.style.left = x + "px"
-    dot.style.zIndex = 9999
+const plotMovement = () => {
+  console.time("Plot Movement")
 
-    document.body.appendChild(dot)
+  addHeatMapIdToDOMElements()
+
+  const cordinates = []
+  const canOverlapElements = []
+
+  // COMPUTE X,Y to PLOT
+  for (const elementKey in GLOBAL_MOUSE_DATA) {
+    const { idCssSelector, moveData } = GLOBAL_MOUSE_DATA[elementKey]
+
+    if (moveData.length && idCssSelector) {
+      const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+      if (!element) continue
+
+      if (isNotPositionStatic(element)) {
+        canOverlapElements.push({
+          elementKey,
+          associateElements: getChildrenMapKeys(element),
+          effectingArea: getEffectingArea(element)
+        })
+        continue
+      }
+
+      const rect = element.getBoundingClientRect()
+
+      const elementWidth = element.scrollWidth
+      const elementHeight = element.scrollHeight
+      const elementPosX = rect.left
+      const elementPosY = rect.top
+
+      for (move of moveData) {
+        const { posX, posY } = move
+
+        const x = (elementWidth * posX) + elementPosX
+        const y = (elementHeight * posY) + elementPosY
+
+        cordinates.push({ x, y })
+      }
+    }
+  }
+
+  // FILTER PLOTS IN THE OVERLAPING AREAS
+  const filteredCordinates = cordinates.filter((cordinate) => {
+    return !isCordinateInside(cordinate, canOverlapElements)
   })
 
-  console.timeEnd("Plot")
+
+  // RE-COMPUTE PLOTS ADD THE OVERLAP ELEMENTS THAT WASN'T INCLUDE 
+  for (const overlapingElement of canOverlapElements) {
+
+    // PLOT THE OWN ELEMENT
+    const { idCssSelector, moveData } = GLOBAL_MOUSE_DATA[overlapingElement.elementKey]
+
+    if (moveData.length && idCssSelector) {
+      const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+      if (!element) continue
+
+      const rect = element.getBoundingClientRect()
+
+      const elementWidth = element.scrollWidth
+      const elementHeight = element.scrollHeight
+      const elementPosX = rect.left
+      const elementPosY = rect.top
+
+      for (move of moveData) {
+        const { posX, posY } = move
+
+        const x = (elementWidth * posX) + elementPosX
+        const y = (elementHeight * posY) + elementPosY
+
+        filteredCordinates.push({ x, y })
+      }
+    }
+
+    // LOOP OVER ASSOCIATE ELEMENTES USING RECURSIVITY
+    const plotAssociateElements = (associateElements) => {
+      if (!associateElements.length) return
+
+      for (const associateElement of associateElements) {
+        const { idCssSelector, moveData } = GLOBAL_MOUSE_DATA[associateElement.childrenKey]
+
+        if (moveData.length && idCssSelector) {
+          const element = document.body.querySelector(convertCustomCssSelector(idCssSelector))
+
+          if (!element) continue
+
+          const rect = element.getBoundingClientRect()
+
+          const elementWidth = element.scrollWidth
+          const elementHeight = element.scrollHeight
+          const elementPosX = rect.left
+          const elementPosY = rect.top
+
+          for (move of moveData) {
+            const { posX, posY } = move
+
+            const x = (elementWidth * posX) + elementPosX
+            const y = (elementHeight * posY) + elementPosY
+
+            filteredCordinates.push({ x, y })
+          }
+        }
+
+        plotAssociateElements(associateElement.associateElements)
+      }
+    }
+
+    plotAssociateElements(overlapingElement.associateElements)
+  }
+
+  paintHeatmap(filteredCordinates, 8)
+
+  console.timeEnd("Plot Movement")
 }
 
 const removePlots = () => {
-  const elements = document.body.querySelectorAll(".dot")
+  const element = document.body.querySelector(".heatmap")
 
-  if (!elements.length) return
+  if (!element) return
 
-  for (const element of elements) {
-    element.remove()
-  }
+  element.remove()
 }
 
 const onUnloadAddDataToStorage = () => {
   addEventListener('beforeunload', () => {
     GLOBAL_TRACK_DATA.endRecortAt = Date.now()
 
-    localStorage.setItem("GLOBAL_MOUSE_DATA", JSON.stringify(GLOBAL_MOUSE_DATA))
-    localStorage.setItem("GLOBAL_TRACK_DATA", JSON.stringify(GLOBAL_TRACK_DATA))
+    const TRACK_DATA = {
+      ...GLOBAL_TRACK_DATA,
+      data: GLOBAL_MOUSE_DATA
+    }
+
+    localStorage.setItem("TRACK_DATA", JSON.stringify(TRACK_DATA))
   });
 }
 
 const startTrackingMouse = () => {
   trackMouse()
   onUnloadAddDataToStorage()
+  getMouseDataFromApi()
 }
 
 startTrackingMouse()
